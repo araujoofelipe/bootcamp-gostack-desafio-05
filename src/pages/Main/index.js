@@ -8,7 +8,8 @@ class Main extends Component{
    state = {
     newRepo:'',
     repositories:[],
-    loading:false
+    loading:false,
+    error:null,
 
    };
    //carregar os dados do local storage
@@ -33,35 +34,53 @@ class Main extends Component{
    };
     handleSubmit = async e =>{
         e.preventDefault();
-        this.setState({loading:true});
-        const { repositories } = this.state
-        const { newRepo } = this.state;
-        const response = await api.get(`/repos/${newRepo}`);
+        this.setState({loading:true, error: false});
 
-        const data = {
-            name:response.data.full_name,
+
+        try{
+            const { newRepo,repositories } = this.state
+
+            if(newRepo === '') throw 'Você precisa inserir um repositório';
+
+            const hasRepo = repositories.find(r => r.name ===newRepo);
+
+            if(hasRepo) throw 'Este repositório já existe';
+
+            const response = await api.get(`/repos/${newRepo}`);
+
+            if(!response) throw 'Este repositório não existe';
+            const data = {
+                name:response.data.full_name,
+            }
+
+            this.setState({
+                repositories:[... repositories,data],
+                newRepo: '',
+                loading:false
+            })
+        }catch(error){
+            alert(error)
+            this.setState({error:true})
+        }finally{
+            this.setState({loading:false});
         }
 
-        this.setState({
-            repositories:[... repositories,data],
-            newRepo: '',
-            loading:false
-        })
-
-        console.log(this.state.repositories);
 
     };
 
     render() {
-    const { newRepo,loading,repositories } = this.state;
+    const { newRepo,loading,repositories,error } = this.state;
     return (
-        <Container>
+        <Container >
         <h1>
             <FaGithubAlt />
             Repositórios
         </h1>
-        <Form onSubmit={this.handleSubmit}>
+
+        <Form onSubmit={this.handleSubmit} error={error}>
+
             <input type="text" placeholder="Adcionar repositório" value={newRepo} onChange={this.handleInputChange}/>
+            {/* {error ?<small>Algo deu errado</small> : ''} */}
         <SubmitButton  loading={loading}>
         {loading ?<FaSpinner color="#FFF" size={14} /> : <FaPlus color="#FFF" size={14}  />}
 
